@@ -46,6 +46,11 @@ export function parseEndpointOutput(input: string): EndpointData | null {
     if (vpcMatch) {
       pathSet.add(vpcMatch[1]);
     }
+
+    const pathMatch = line.match(/pathep-\[([^\]]+)\]/);
+    if (pathMatch) {
+      pathSet.add(pathMatch[1]);
+    }
   }
 
   if (vlan && pathSet.size > 0) {
@@ -65,13 +70,7 @@ export function parseMoqueryOutput(input: string): PathAttachment[] {
   const attachments: PathAttachment[] = [];
 
   for (const line of lines) {
-    // Match protpaths (VPC)
-    let dnMatch = line.match(/dn\s*:\s*uni\/tn-[^\/]+\/ap-[^\/]+\/epg-([^\/]+)\/rspathAtt-\[topology\/(pod-\d+\/protpaths-[\d-]+\/pathep-\[[^\]]+\])\]/i);
-
-    // Match single paths (non-VPC)
-    if (!dnMatch) {
-      dnMatch = line.match(/dn\s*:\s*uni\/tn-[^\/]+\/ap-[^\/]+\/epg-([^\/]+)\/rspathAtt-\[topology\/(pod-\d+\/paths-[\d]+\/pathep-\[[^\]]+\])\]/i);
-    }
+    const dnMatch = line.match(/dn\s*:\s*uni\/tn-[^\/]+\/ap-[^\/]+\/epg-([^\/]+)\/rspathAtt-\[topology\/([^\]]+)\]/i);
 
     if (dnMatch) {
       const epg = dnMatch[1];
