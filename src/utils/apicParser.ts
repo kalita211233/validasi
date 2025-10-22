@@ -32,7 +32,7 @@ export function parseEndpointOutput(input: string): EndpointData | null {
       vlan = vlanMatch[1];
     }
 
-    const nodeMatch = line.match(/Node\s*\n\s*(\d+)\s+(\d+)/);
+    const nodeMatch = line.match(/(\d+)\s+(\d+)\s+vpc\s+([\d-]+-VPC-[\d-]+-PG)/i);
     if (nodeMatch) {
       const node1 = parseInt(nodeMatch[1]);
       if (node1 >= 400) {
@@ -40,16 +40,7 @@ export function parseEndpointOutput(input: string): EndpointData | null {
       } else if (node1 >= 300) {
         pod = 'pod-1';
       }
-    }
-
-    const vpcMatch = line.match(/vpc\s+([\d-]+-VPC-[\d-]+-PG)/i);
-    if (vpcMatch) {
-      pathSet.add(vpcMatch[1]);
-    }
-
-    const pathMatch = line.match(/pathep-\[([^\]]+)\]/);
-    if (pathMatch) {
-      pathSet.add(pathMatch[1]);
+      pathSet.add(nodeMatch[3]);
     }
   }
 
