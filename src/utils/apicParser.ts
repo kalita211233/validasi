@@ -32,15 +32,26 @@ export function parseEndpointOutput(input: string): EndpointData | null {
       vlan = vlanMatch[1];
     }
 
-    const nodeMatch = line.match(/(\d+)\s+(\d+)\s+vpc\s+([\d-]+-VPC-[\d-]+-PG)/i);
-    if (nodeMatch) {
-      const node1 = parseInt(nodeMatch[1]);
+    const vpcMatch = line.match(/(\d+)\s+(\d+)\s+vpc\s+([\d-]+-VPC-[\d-]+-PG)/i);
+    if (vpcMatch) {
+      const node1 = parseInt(vpcMatch[1]);
       if (node1 >= 400) {
         pod = 'pod-2';
       } else if (node1 >= 300) {
         pod = 'pod-1';
       }
-      pathSet.add(nodeMatch[3]);
+      pathSet.add(vpcMatch[3]);
+    }
+
+    const ethMatch = line.match(/(\d+)\s+eth(\d+)\/(\d+)/i);
+    if (ethMatch) {
+      const node = parseInt(ethMatch[1]);
+      if (node >= 400) {
+        pod = 'pod-2';
+      } else if (node >= 300) {
+        pod = 'pod-1';
+      }
+      pathSet.add(`eth${ethMatch[2]}/${ethMatch[3]}`);
     }
   }
 
@@ -130,19 +141,21 @@ export function generateCSV(
     pathMap.set(attachment.path, attachment.fullPath);
   }
 
-  const rows = notAllowedPaths.map(vpcPath => {
-    let fullPath = pathMap.get(vpcPath);
+  const rows = notAllowedPaths.map(pathName => {
+    let fullPath = pathMap.get(pathName);
 
     if (!fullPath) {
-      const protpathsMatch = vpcPath.match(/(\d+)-(\d+)-VPC/);
-      if (protpathsMatch) {
-        fullPath = `${endpointData.pod}/protpaths-${protpathsMatch[1]}-${protpathsMatch[2]}/pathep-[${vpcPath}]`;
+      const vpcMatch = pathName.match(/(\d+)-(\d+)-VPC-([\d-]+-PG)/);
+      if (vpcMatch) {
+        fullPath = `${endpointData.pod}/protpaths-${vpcMatch[1]}-${vpcMatch[2]}/pathep-[${pathName}]`;
+      } else if (pathName.startsWith('eth')) {
+        fullPath = `${endpointData.pod}/paths-XXX/pathep-[${pathName}]`;
       } else {
-        fullPath = `${endpointData.pod}/protpaths-XXX-XXX/pathep-[${vpcPath}]`;
+        fullPath = `${endpointData.pod}/paths-XXX/pathep-[${pathName}]`;
       }
     }
 
-    return `${vlan},${epg},${fullPath}`;
+    return `${vlan},${epg},topology/${fullPath}`;
   });
 
   return header + '\n' + rows.join('\n');

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Network, Download, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { Network, Download, AlertCircle, Plus, Trash2, RotateCcw } from 'lucide-react';
 import ValidationTable from './components/ValidationTable';
 import {
   parseEndpointOutput,
@@ -101,15 +101,17 @@ function App() {
             let fullPath = pathMap.get(result.path);
 
             if (!fullPath) {
-              const protpathsMatch = result.path.match(/(\d+)-(\d+)-VPC/);
-              if (protpathsMatch) {
-                fullPath = `${entry.endpointData!.pod}/protpaths-${protpathsMatch[1]}-${protpathsMatch[2]}/pathep-[${result.path}]`;
+              const vpcMatch = result.path.match(/(\d+)-(\d+)-VPC-([\d-]+-PG)/);
+              if (vpcMatch) {
+                fullPath = `${entry.endpointData!.pod}/protpaths-${vpcMatch[1]}-${vpcMatch[2]}/pathep-[${result.path}]`;
+              } else if (result.path.startsWith('eth')) {
+                fullPath = `${entry.endpointData!.pod}/paths-XXX/pathep-[${result.path}]`;
               } else {
                 fullPath = `${entry.endpointData!.pod}/paths-XXX/pathep-[${result.path}]`;
               }
             }
 
-            allRows.push(`${vlanNumber},${epgFormatted},${fullPath}`);
+            allRows.push(`${vlanNumber},${epgFormatted},topology/${fullPath}`);
           });
         }
       }
@@ -123,6 +125,13 @@ function App() {
     const csv = 'VLAN,EPG,PATH\n' + allRows.join('\n');
     const filename = `vlan-validation-${new Date().toISOString().split('T')[0]}.csv`;
     downloadCSV(csv, filename);
+  };
+
+  const handleReset = () => {
+    setMoqueryInput('');
+    setEntries([{ id: '1', endpointInput: '', epgName: '', results: null, endpointData: null }]);
+    setPathAttachments([]);
+    setError(null);
   };
 
   const totalNotAllowed = entries.reduce((sum, entry) => {
@@ -241,6 +250,14 @@ function App() {
                 className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-lg transition-colors shadow-sm"
               >
                 Validate All
+              </button>
+
+              <button
+                onClick={handleReset}
+                className="px-6 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset
               </button>
 
               {totalNotAllowed > 0 && (
